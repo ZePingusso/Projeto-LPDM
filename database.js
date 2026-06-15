@@ -1,8 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-
-
 const db = SQLite.openDatabaseSync('safeDrive.db');
-
 
 export function initDB() {
   db.execSync(`
@@ -16,7 +13,6 @@ export function initDB() {
 );
   `);
 }
-
 
 export function insertAluno(aluno) {
 db.runSync(
@@ -32,12 +28,33 @@ db.runSync(
   ]
 );
 }
+
 export function getAlunos(setter) {
   const result = db.getAllSync(
     `SELECT * FROM alunos ORDER BY rowid DESC`
   );
 
   setter(result);
+}
+
+export function updateAluno(aluno) {
+  db.runSync(
+    `UPDATE alunos
+     SET foto = ?,
+         nome = ?,
+         idade = ?,
+         serie = ?,
+         turma = ?
+     WHERE id = ?`,
+    [
+      aluno.foto,
+      aluno.nome,
+      aluno.idade,
+      aluno.serie,
+      aluno.turma,
+      aluno.id
+    ]
+  );
 }
 
 export function deleteAluno(id) {

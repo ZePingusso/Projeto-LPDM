@@ -5,6 +5,7 @@ import CardAluno from './CardAluno';
 export default function ListaAlunos({
   alunos,
   onDelete,
+  onEdit
 }) {
   return (
     <FlatList
@@ -14,6 +15,7 @@ export default function ListaAlunos({
         <CardAluno
           item={item}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       )}
     />

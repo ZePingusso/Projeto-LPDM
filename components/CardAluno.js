@@ -1,74 +1,201 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
+import FormAluno from './components/FormAluno';
+import BotaoFoto from './components/BotaoFoto';
+import ListaAlunos from './components/ListaAlunos';
+import PesquisaAluno from './components/PesquisarAluno';
+import BotaoCadastro from './components/BotaoCadastro';
+import {
+  Text,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  View,
+} from 'react-native';
+import {
+  initDB,
+  insertAluno,
+  deleteAluno,
+  updateAluno,
+  getAlunos,
+} from './database';
 
-export default function CardAluno({ item, onDelete }) {
+export default function App() {
+const [alunos, setAlunos] = useState([]);
+const [nome, setNome] = useState('');
+const [idade, setIdade] = useState('');
+const [serie, setSerie] = useState('');
+const [turma, setTurma] = useState('');
+const [foto, setFoto] = useState(null);
+const [pesquisa, setPesquisa] = useState('');
+const [alunoEditando, setAlunoEditando] = useState(null);
+
+  
+useEffect(() => {
+  initDB();
+  getAlunos(setAlunos);
+}, []);
+
+function cadastrarAluno() {
+
+  if (alunoEditando) {
+
+    updateAluno({
+      id: alunoEditando.id,
+      foto,
+      nome,
+      idade,
+      serie,
+      turma,
+    });
+
+    Alert.alert('Aluno atualizado!');
+    setAlunoEditando(null);
+
+  } else {
+
+    insertAluno({
+      foto,
+      nome,
+      idade,
+      serie,
+      turma,
+    });
+
+    Alert.alert('Aluno cadastrado!');
+  }
+
+  getAlunos(setAlunos);
+
+  setNome('');
+  setIdade('');
+  setSerie('');
+  setTurma('');
+  setFoto(null);
+}
+
+function editarAluno(aluno) {
+  setAlunoEditando(aluno);
+
+  setNome(aluno.nome);
+  setIdade(aluno.idade.toString());
+  setSerie(aluno.serie);
+  setTurma(aluno.turma);
+  setFoto(aluno.foto);
+}
+
+function excluirAluno(id) {
+  Alert.alert(
+    'Excluir aluno',
+    'Tem certeza que deseja excluir?',
+    [
+      { text: 'Cancelar' },
+      {
+        text: 'Excluir',
+        onPress: () => {
+          deleteAluno(id);
+          getAlunos(setAlunos);
+        }
+      }
+    ]
+  );
+}
+async function tirarFoto() {
+  const permissao =
+    await ImagePicker.requestCameraPermissionsAsync();
+
+  if (!permissao.granted) {
+    Alert.alert('Permissão da câmera negada');
+    return;
+  }
+
+  const resultado = await ImagePicker.launchCameraAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 1,
+  });
+
+  if (!resultado.canceled) {
+    setFoto(resultado.assets[0].uri);
+  }
+}
+const alunosFiltrados = alunos.filter((aluno) =>
+  aluno.nome.toLowerCase().includes(
+    pesquisa.toLowerCase()
+  )
+);
   return (
-    <View style={styles.card}>
-      <Text style={styles.nome}>Nome: {item.nome}</Text>
-         {item.foto && (
-        <Image
-          source={{ uri: item.foto }}
-          style={styles.foto}
-        />
-      )}
-      <Text style={styles.informacao}>📌Idade: {item.idade}</Text>
-      <Text style={styles.informacao}>📚Série: {item.serie}</Text>
-      <Text style={styles.informacao}>🏫Turma: {item.turma}</Text>
+<ScrollView style={styles.container}>
+  <Text style={styles.titulo}>
+    Cadastro de Alunos 🎓
+  </Text>
 
-      <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.botaoExcluir}>
-        <Text style={styles.textoBotao}>🗑️ Excluir</Text>
-      </TouchableOpacity>
-    </View>
+<FormAluno
+  nome={nome}
+  setNome={setNome}
+  idade={idade}
+  setIdade={setIdade}
+  serie={serie}
+  setSerie={setSerie}
+  turma={turma}
+  setTurma={setTurma}
+/>
+<BotaoFoto onPress={tirarFoto} />
+{foto && (
+  <View style={styles.fotoContainer}>
+    <Image
+      source={{ uri: foto }}
+      style={styles.fotoPreview}
+    />
+  </View>
+)}
+<BotaoCadastro
+  texto={
+    alunoEditando
+      ? 'Salvar Alterações'
+      : 'Cadastrar Aluno'
+  }
+  onPress={cadastrarAluno}
+/>
+<PesquisaAluno
+  pesquisa={pesquisa}
+  setPesquisa={setPesquisa}
+/>
+<ListaAlunos
+  alunos={alunosFiltrados}
+  onDelete={excluirAluno}
+  onEdit={editarAluno}
+/>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#ffffff',
-    padding: 15,
-    marginVertical: 8,
-    marginHorizontal: 10,
-    borderRadius: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    padding: 20,
+    paddingTop: 50,
   },
 
-foto: {
-  width: 100,
-  height: 100,
-  borderRadius: 12,
-  alignSelf: 'center',
-  marginBottom: 10,
-  borderWidth: 2,
-},
-
-  nome: {
-    fontSize: 20,
+  titulo: {
+    fontSize: 30,
     fontWeight: 'bold',
+    textAlign: 'center',
     color: '#1e293b',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 20,
   },
 
-  informacao: {
-    fontSize: 15,
-    color: '#475569',
-    marginBottom: 4,
+  fotoContainer: {
+    alignItems: 'center',
+    marginVertical: 15,
   },
 
-  botaoExcluir: {
-    backgroundColor: '#ef4444',
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 12,
-  },
-
-  textoBotao: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
+  fotoPreview: {
+    width: 160,
+    height: 160,
+    borderRadius: 15,
+    borderWidth: 3,
+    borderColor: '#2563eb',
   },
 });
